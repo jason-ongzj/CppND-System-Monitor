@@ -15,15 +15,25 @@ using std::string;
 using std::vector;
 
 // TODO: Return the system's CPU
-Processor& System::Cpu() { return cpu_; }
+Processor& System::Cpu() { 
+	return cpu_; 
+}
 
 // TODO: Return a container composed of the system's processes
-vector<Process>& System::Processes() { return processes_; }
+vector<Process>& System::Processes() { 
+	if (processes_.size() > 0) {
+		processes_.clear();
+	}
+	vector<int> pid_list = LinuxParser::Pids();
+	for(size_t i=0; i<pid_list.size(); i++){
+		Process proc(pid_list[i]);
+		processes_.push_back(proc);
+	}
+	return processes_; 
+}
 
 // TODO: Return the system's kernel identifier (string)
-std::string System::Kernel() { 
-	return LinuxParser::Kernel();
-}
+std::string System::Kernel() { return LinuxParser::Kernel(); }
 
 // TODO: Return the system's memory utilization
 float System::MemoryUtilization() { return LinuxParser::MemoryUtilization(); }

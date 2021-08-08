@@ -19,16 +19,18 @@ string Format::ElapsedTime(long seconds) {
 	} else {
 		elapsed_time += std::to_string(hours) + ":";
 	}
+
 	if (mins < 10) {
 		elapsed_time += "0" + std::to_string(mins) + ":";
 	} else {
 		elapsed_time += std::to_string(mins) + ":";
 	}
+
 	if (secs < 10) {
 		elapsed_time += "0" + std::to_string(secs);
 	} else {
 		elapsed_time += std::to_string(secs);
 	}
-	
+
 	return elapsed_time;
 }
