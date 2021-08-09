@@ -124,12 +124,36 @@ long LinuxParser::Jiffies() {
 
 // TODO: Read and return the number of active jiffies for a PID
 // REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::ActiveJiffies(int pid[[maybe_unused]]) { return 0; }
+long LinuxParser::ActiveJiffies(int pid) { 
+  string line;
+  std::ifstream filestream(kProcDirectory + "/" + std::to_string(pid) + kStatFilename);
+  if (filestream.is_open()){
+    std::getline(filestream, line);
+    long utime = 0;
+    long stime = 0;
+    string::size_type start = 0;
+    string::size_type last = line.find_first_of(" ");
+    int count = 1;
+    while(last != string::npos) {
+      switch (count){
+        case 14: utime = stol(line.substr(start, last-start));
+                 break;
+        case 15: stime = stol(line.substr(start, last-start));
+                 break;
+      }
+      start = ++last;
+      count++;
+      last = line.find_first_of(" ", last);
+    }
+    return utime + stime;
+  }
+  return 0; 
+}
 
 // TODO: Read and return the number of active jiffies for the system
 long LinuxParser::ActiveJiffies() { 
   vector<string> cpu_util = CpuUtilization();
-  if (cpu_util.size()){
+  if (cpu_util.size() != 0){
     return stol(cpu_util[0]) + stol(cpu_util[1]) + stol(cpu_util[2]) + stol(cpu_util[5]) 
       + stol(cpu_util[6]) + stol(cpu_util[7]);
   }
@@ -199,7 +223,7 @@ int LinuxParser::RunningProcesses() {
 // REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::Command(int pid) { 
   string line;
-  std::ifstream filestream(kProcDirectory + std::to_string(pid) + kCmdlineFilename);
+  std::ifstream filestream(kProcDirectory + "/" + std::to_string(pid) + kCmdlineFilename);
    if (filestream.is_open()){
     std::getline(filestream, line);
     return line;
@@ -211,7 +235,7 @@ string LinuxParser::Command(int pid) {
 // REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::Ram(int pid) { 
   string key, value, line;
-  std::ifstream filestream(kProcDirectory + std::to_string(pid) + kStatusFilename);
+  std::ifstream filestream(kProcDirectory + "/" + std::to_string(pid) + kStatusFilename);
    if (filestream.is_open()){
     while(std::getline(filestream, line)) {
       std::istringstream linestream(line);
@@ -228,7 +252,7 @@ string LinuxParser::Ram(int pid) {
 // REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::Uid(int pid) { 
   string key, value, line;
-  std::ifstream filestream(kProcDirectory + std::to_string(pid) + kStatusFilename);
+  std::ifstream filestream(kProcDirectory + "/" + std::to_string(pid) + kStatusFilename);
   if (filestream.is_open()){
     while(std::getline(filestream, line)) {
       std::istringstream linestream(line);
@@ -247,12 +271,17 @@ string LinuxParser::User(int pid) {
   string val = Uid(pid);
   string pwd_val, user, x, line;
   std::ifstream filestream(kPasswordPath);
-  while(std::getline(filestream, line)) {
-    std::replace(line.begin(), line.end(), ':', ' ');
-    std::istringstream linestream(line);
-    linestream >> user >> x >> pwd_val;
-    if (pwd_val == val) {
-      return user;
+  if (filestream.is_open()){
+    while(std::getline(filestream, line)) {
+      std::replace(line.begin(), line.end(), ':', ' ');
+      std::istringstream linestream(line);
+      linestream >> user >> x >> pwd_val;
+      if (pwd_val == val) {
+        if(user.size() > 6){
+          user.erase(6);
+        }
+        return user;
+      }
     }
   }
   return string(); 
@@ -260,6 +289,24 @@ string LinuxParser::User(int pid) {
 
 // TODO: Read and return the uptime of a process
 // REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::UpTime(int pid[[maybe_unused]]) { 
+long LinuxParser::UpTime(int pid) { 
+  string value, line;
+  std::ifstream filestream(kProcDirectory + "/" + std::to_string(pid) + kStatFilename);
+  if (filestream.is_open()){
+    std::getline(filestream, line);
+    string::size_type start = 0;
+    string::size_type last = line.find_first_of(" ");
+    int count = 1;
+    while(last != string::npos) {
+      if (count == 22) {
+        value = line.substr(start, last-start);
+        break;
+      }
+      start = ++last;
+      count++;
+      last = line.find_first_of(" ", last);
+    }
+    return stol(value)/sysconf(_SC_CLK_TCK);
+  }
   return 0; 
 }
