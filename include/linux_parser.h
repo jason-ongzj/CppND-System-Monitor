@@ -52,6 +52,11 @@ std::string Ram(int pid);
 std::string Uid(int pid);
 std::string User(int pid);
 long int UpTime(int pid);
+
+// Generic function for reading streams for different parsing functions
+template<typename T>
+T FindValueByKey(std::string const &file, std::string const &keyword);
+
 };  // namespace LinuxParser
 
 #endif
