@@ -24,14 +24,14 @@ string LinuxParser::OperatingSystem() {
       std::replace(line.begin(), line.end(), '=', ' ');
       std::replace(line.begin(), line.end(), '"', ' ');
       std::istringstream linestream(line);
-      while (linestream >> key >> value) {
-        if (key == "PRETTY_NAME") {
-          std::replace(value.begin(), value.end(), '_', ' ');
-          return value;
-        }
+      linestream >> key >> value;
+      if (key == "PRETTY_NAME") {
+        std::replace(value.begin(), value.end(), '_', ' ');
+        break;
       }
     }
   }
+  filestream.close();
   return value;
 }
 
@@ -45,6 +45,7 @@ string LinuxParser::Kernel() {
     std::istringstream linestream(line);
     linestream >> os >> version >> kernel;
   }
+  stream.close();
   return kernel;
 }
 
@@ -83,9 +84,9 @@ long LinuxParser::UpTime() {
     std::getline(filestream, line);
     std::istringstream linestream(line);
     linestream >> uptime >> idle;
-    return stol(uptime);
   }
-  return 0;
+  filestream.close();
+  return stol(uptime);
 }
 
 long LinuxParser::Jiffies() { 
@@ -97,19 +98,19 @@ long LinuxParser::Jiffies() {
     std::istringstream linestream(line);
     linestream >> cpuid >> user >> nice >> system >> idle >> iowait; 
     linestream >> irq >> softirq >> steal >> guest >> guest_nice; 
-    return stol(user) + stol(nice) + stol(system) + stol(idle) + stol(iowait) + stol(irq) 
-      + stol(softirq) + stol(steal) + stol(guest) + stol(guest_nice);
   }
-  return 0; 
+  filestream.close();
+  return stol(user) + stol(nice) + stol(system) + stol(idle) + stol(iowait) + stol(irq) 
+      + stol(softirq) + stol(steal) + stol(guest) + stol(guest_nice);
 }
 
 long LinuxParser::ActiveJiffies(int pid) { 
   string line;
+  long utime = 0;
+  long stime = 0;
   std::ifstream filestream(kProcDirectory + "/" + std::to_string(pid) + kStatFilename);
   if (filestream.is_open()){
     std::getline(filestream, line);
-    long utime = 0;
-    long stime = 0;
     string::size_type start = 0;
     string::size_type last = line.find_first_of(" ");
     int count = 1;
@@ -124,9 +125,9 @@ long LinuxParser::ActiveJiffies(int pid) {
       count++;
       last = line.find_first_of(" ", last);
     }
-    return utime + stime;
   }
-  return 0; 
+  filestream.close();
+  return utime + stime;
 }
 
 long LinuxParser::ActiveJiffies() { 
@@ -155,10 +156,10 @@ vector<string> LinuxParser::CpuUtilization() {
     std::getline(filestream, line);
     std::istringstream linestream(line);
     linestream >> cpuid >> user >> nice >> system >> idle >> iowait; 
-    linestream >> irq >> softirq >> steal >> guest >> guest_nice; 
-    return {user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice};
+    linestream >> irq >> softirq >> steal >> guest >> guest_nice;  
   }
-  return {};
+  filestream.close();
+  return {user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice};
 }
 
 int LinuxParser::TotalProcesses() { 
@@ -176,9 +177,9 @@ string LinuxParser::Command(int pid) {
   std::ifstream filestream(kProcDirectory + "/" + std::to_string(pid) + kCmdlineFilename);
    if (filestream.is_open()){
     std::getline(filestream, line);
-    return line.substr(0, 40);
   }
-  return string(); 
+  filestream.close();
+  return line.substr(0, 40); 
 }
 
 string LinuxParser::Ram(int pid) { 
@@ -205,11 +206,12 @@ string LinuxParser::User(int pid) {
         if(user.size() > 6){
           user.erase(6);
         }
-        return user;
+        break;
       }
     }
   }
-  return string(); 
+  filestream.close();
+  return user;
 }
 
 long LinuxParser::UpTime(int pid) { 
@@ -229,10 +231,10 @@ long LinuxParser::UpTime(int pid) {
       count++;
       last = line.find_first_of(" ", last);
     }
-    long upTimePid = UpTime() - stol(value)/sysconf(_SC_CLK_TCK);
-    return upTimePid;
   }
-  return 0; 
+  filestream.close();
+  long upTimePid = UpTime() - stol(value)/sysconf(_SC_CLK_TCK);
+  return upTimePid;
 }
 
 template<typename T>
@@ -246,9 +248,10 @@ T LinuxParser::FindValueByKey(std::string const &file, std::string const &keywor
       std::istringstream linestream(line);
       linestream >> key >> value;
       if (key == keyword) {
-        return value;
+        break;
       }
     }
   }
+  filestream.close();
   return value;
 }
